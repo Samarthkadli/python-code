@@ -1,0 +1,106 @@
+#finalised
+import os
+import datetime
+
+class SnapshotManager:
+    def __init__(self, vm_name, vm_id):
+        self.vm_name = vm_name
+        self.vm_id = vm_id
+        self.snapshots = []
+
+    def create_snapshot(self, snapshot_name):
+        snapshot_file = f"{self.vm_id}_{self.vm_name}_{snapshot_name}.snap"  # Include VM ID
+        with open(snapshot_file, "w") as f:
+            f.write("Snapshot taken")
+        current_time = datetime.datetime.now().strftime("%d-%m-%Y       %H:%M:%S")
+        snapshot_data = f"\nName          : {snapshot_name} \nFile          : {snapshot_file} \nDate and Time : {current_time}"
+        self.snapshots.append(snapshot_data) #list
+        print(f"Snapshot '{snapshot_name}' created for VM '{self.vm_name}'.")
+
+    def list_snapshots(self):
+        if not self.snapshots:
+            print(f"No snapshots available for VM '{self.vm_name}'.")
+        else:
+            print(f"Snapshots available for VM '{self.vm_name}':")
+            print("---------------------------------------------------------------------------------------------------")
+            for snapshot in self.snapshots:
+                print(snapshot)
+            print("---------------------------------------------------------------------------------------------------")
+
+    def delete_snapshot(self, snapshot_name):
+        snapshot = next((s for s in self.snapshots if snapshot_name in s), None)
+        if snapshot:
+            self.snapshots.remove(snapshot)
+            print(f"Snapshot '{snapshot_name}' deleted for VM '{self.vm_name}'.")
+        else:
+            print(f"Snapshot '{snapshot_name}' not found for VM '{self.vm_name}'.")
+
+    def update_snapshot(self, snapshot_name, new_snapshot_name):
+        for i, snapshot in enumerate(self.snapshots):
+            if snapshot_name in snapshot:
+                snapshot_data = snapshot.replace(snapshot_name, new_snapshot_name)
+                self.snapshots[i] = snapshot_data
+                print(f"Snapshot '{snapshot_name}' updated to '{new_snapshot_name}' for VM '{self.vm_name}'.")
+                break
+            else:
+                print(f"Snapshot '{snapshot_name}' not found for VM '{self.vm_name}'. Cannot update.")
+
+    def manage_snapshot_lifecycle(self, retention_period, max_snapshots, deletion_policy='oldest_first'):
+        if retention_period:
+            retention_date = datetime.datetime.now() - datetime.timedelta(days=retention_period)
+            self.snapshots = [snapshot for snapshot in self.snapshots if datetime.datetime.strptime(snapshot.split('Date and Time : ')[-1], "%d-%m-%Y       %H:%M:%S") >= retention_date]
+    
+        if max_snapshots and len(self.snapshots) > max_snapshots:
+            if deletion_policy == 'oldest_first':
+                self.snapshots = self.snapshots[-max_snapshots:]
+        elif deletion_policy == 'newest_first':
+            self.snapshots = self.snapshots[:max_snapshots]
+
+
+def main():
+    vm_name = input("Enter the name of the virtual machine: ")
+    vm_id = input("Enter the ID of the virtual machine: ")  # Ask for VM ID
+    manager = SnapshotManager(vm_name, vm_id)
+
+    while True:
+        print("\nVirtual Machine Snapshot Manager")
+        print("1. Create Snapshot")
+        print("2. List Snapshots")
+        print("3. Delete Snapshot")
+        print("4. Update Snapshot")
+        print("5. Manage Snapshot Lifecycle")
+        print("6. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            snapshot_name = input("Enter snapshot name: ")
+            manager.create_snapshot(snapshot_name)
+
+        elif choice == '2':
+            manager.list_snapshots()
+
+        elif choice == '3':
+            snapshot_name = input("Enter snapshot name to delete: ")
+            manager.delete_snapshot(snapshot_name)
+
+        elif choice == '4':
+            snapshot_name = input("Enter snapshot name to update: ")
+            new_snapshot_name = input("Enter new snapshot name: ")
+            manager.update_snapshot(snapshot_name, new_snapshot_name)
+
+        elif choice == '5':
+            retention_period = int(input("Enter retention period (in days): "))
+            max_snapshots = int(input("Enter maximum number of snapshots to keep: "))
+            deletion_policy = input("Enter deletion policy (oldest_first/newest_first): ")
+            manager.manage_snapshot_lifecycle(retention_period, max_snapshots, deletion_policy)
+
+        elif choice == '6':
+            print("Exiting...")
+            break
+
+        else:
+            print("Invalid choice. Please try again.")
+
+if __name__ == "__main__":
+    main()
